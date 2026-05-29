@@ -4,9 +4,9 @@ A small practice app: press **Start** to get a random question and start the tim
 
 ## Quick start
 
-Open `problems/W2-D3/index.html` in a browser.
+Open `index.html` in a browser.
 
-Recommended (avoids ES module/CORS issues):
+Recommended:
 - VS Code: use **Live Server** extension
 
 ## Expected behavior (user flow)
