@@ -1,142 +1,85 @@
-# Technical Note -- Timer + Random Q&A Website
+# Technical Note -- Architecture (Timer Q&A Practice)
 
-This document explains the JavaScript architecture in `problems/W2-D3/src/app/index.js` and its modules.
+## Purpose
 
-## A) Module Overview
+- Explain the module boundaries and the rules to follow when changing or refactoring this project.
 
-### `createDomBindings()`
-Responsibility:
-- Collect all required DOM references in one place.
-- Hard-fail early if required elements are missing (predictable failure mode).
+## Non-goals
 
-### `createTimer({ millisecondsPerTick })`
-Responsibility:
-- Own stopwatch state.
-- Start/stop/reset time.
-- Format elapsed time as `HH:MM:SS`.
+- Not a "how to run" guide (see `README.md`).
+- Not a UI/UX spec (the source of truth is `index.html` + `src/ui/**`).
 
-### `createQuestionBank(preparedQuestions)`
-Responsibility:
-- Own the prepared questions and the "used questions" tracking.
-- Return a random unused question.
-- Prevent repeats until all questions have been shown once (then auto-reset).
+## Architecture at a glance
 
-### `createAnswerValidator()`
-Responsibility:
-- Normalize answers (trim + collapse whitespace + lowercase).
-- Check correctness without side effects.
+- `index.html` is the static shell and loads the app entry `src/app/index.js`.
+- `src/app/**` orchestrates the application (wires modules, binds events, controls flow).
+- `src/core/**` is reusable business logic (must not access DOM APIs).
+- `src/ui/**` is DOM-only code (query, render, enable/disable controls, styles).
+- `src/data/**` provides prepared data (questions seed).
 
-### `createUiRenderer(dom)`
-Responsibility:
-- Render timer/question/result using `textContent`.
-- Control UI interaction state (`idle` / `answering` / `submitted`).
+Dependency direction (keep this):
+- `core` must not import `ui` or `app`.
+- `ui` may import shared constants from `core/constants`.
+- `app` may import `core`, `ui`, and `data` and is the composition root.
 
-### `createGameController({ timer, questionBank, validator, ui, dom })`
-Responsibility:
-- Coordinate game flow (Start -> Answering -> Submit -> Submitted).
-- Handle edge cases and keep the UI consistent.
-- Own the "current question" and "mode".
+Note:
+- `main.js` is a compatibility shim that imports `src/app/index.js` (safe to delete if unused).
 
-## B) Private State
+## State ownership (who owns what)
 
-### Timer module (`createTimer`)
-Private:
-- `elapsedSeconds`
-- `intervalId`
+- `src/core/timer/timer.js` owns: `elapsedSeconds`, `intervalId`.
+- `src/core/questions/questionBank.js` owns: `questions` (internal copy), `usedQuestionIds`.
+- `src/app/controller/gameController.js` owns: `currentQuestion`, `mode` (interaction state).
 
-### Question bank (`createQuestionBank`)
-Private:
-- `questions` (internal copy)
-- `usedQuestionIds` (`Set`)
+## Single source of truth (constants)
 
-### Game controller (`createGameController`)
-Private:
-- `currentQuestion`
-- `mode`
+- `src/core/constants/interactionState.js` defines:
+  - `INTERACTION_STATE` (`idle` / `answering` / `submitted`)
+  - `RESULT_STATUS` (`info` / `success` / `danger`)
+- UI and controller must use these constants (do not redefine state/status elsewhere).
 
-## C) Public API
+## Module contracts (public APIs)
 
-### Timer API
-- `start({ onTick })`
-- `stop()`
-- `reset()`
-- `isRunning()`
-- `getElapsedSeconds()`
-- `getFormattedTime()`
+- `src/core/timer/timer.js`
+  - `start({ onTick })`, `stop()`, `reset()`, `isRunning()`, `getElapsedSeconds()`, `getFormattedTime()`
+- `src/core/questions/questionBank.js`
+  - `getRandomUnusedQuestion()`, `resetUsedQuestions()`, `getCounts()`
+- `src/core/validation/answerValidator.js`
+  - `normalizeAnswer(text)`, `isAnswerCorrect({ userAnswer, expectedAnswer })`
+- `src/ui/render/uiRenderer.js`
+  - `renderTimer(text)`, `renderQuestion(promptText)`, `renderResult({ status, message })`, `clearResult()`
+  - `setInteractionState(state)`, `setAnswerInputValue(value)`, `focusAnswerInput()`
+- `src/app/controller/gameController.js`
+  - `startRound()`, `submitAnswer()`, `resetGame()`
 
-Why:
-- Other modules only need behavior (start/stop/read time), not internal interval details.
+Keep these contracts stable unless you update all call sites in `src/app/index.js`.
 
-### Question bank API
-- `getRandomUnusedQuestion()`
-- `resetUsedQuestions()`
-- `getCounts()`
+## Control flow (what happens on each action)
 
-Why:
-- UI and controller depend on "get me a question" behavior, not the data structure.
+- Start (`gameController.startRound()`)
+  - Clear result, pick a question (`questionBank.getRandomUnusedQuestion()`), render prompt, clear input.
+  - Reset timer, render `00:00:00`, start ticking; on tick, render formatted time.
+  - Switch interaction state to `answering` and focus the input.
+- Submit (`gameController.submitAnswer()`)
+  - If empty input: show message and keep focusing input.
+  - Stop timer, validate answer (`answerValidator.isAnswerCorrect(...)`), render result + elapsed time.
+  - Switch interaction state to `submitted`.
+- Reset (`gameController.resetGame()`)
+  - Stop + reset timer, clear current question.
+  - Render default question text, clear input, clear result.
+  - Switch interaction state to `idle`.
 
-### Validator API
-- `normalizeAnswer(text)`
-- `isAnswerCorrect({ userAnswer, expectedAnswer })`
+## Extension points (where new code should go)
 
-Why:
-- Separates business rules from controller flow; easy to evolve later (multiple answers, punctuation rules, etc.).
+- More questions: edit `src/data/questions.js`.
+- Scoring/history: add a `src/core/**` module to own the state, call it from `gameController`, render it via `src/ui/**`.
+- Persistence (`localStorage`): isolate it in a `src/core/**` storage module; do not spread `localStorage` calls across controller/UI.
+- Categories: add `category` to question objects and extend `questionBank` to filter before picking.
 
-### UI API
-- `renderTimer(text)`
-- `renderQuestion(promptText)`
-- `renderResult({ status, message })`
-- `clearResult()`
-- `setInteractionState(state)`
-- `setAnswerInputValue(value)`
-- `focusAnswerInput()`
+## Refactor safety checklist
 
-Why:
-- Controller doesn't manually toggle DOM properties everywhere; it requests intention-level UI changes.
-
-### Controller API
-- `startRound()`
-- `submitAnswer()`
-- `resetGame()`
-
-Why:
-- This is the app's "public surface": event handlers call controller methods only.
-
-## D) Refactor/Clean Code Standards Applied
-
-- Meaningful names (e.g. `elapsedSeconds`, `getRandomUnusedQuestion`, `currentQuestion`)
-- Small functions with single responsibility (timer vs validation vs UI vs orchestration)
-- One responsibility per module (high cohesion, low coupling)
-- Encapsulation via closure (no global mutable state)
-- Clear public API (modules expose methods, not raw internals)
-- Avoid shared mutable state (each state has an owner module)
-- Command/query separation (e.g. `getFormattedTime()` vs `resetGame()`)
-- Predictable side effects (render/stop/start happen via clearly named commands)
-- DOM safety: uses `textContent` (no `innerHTML` for dynamic content)
-- Events bound via `addEventListener` (no inline `onclick`)
-- Constants instead of magic numbers (e.g. `MILLISECONDS_PER_SECOND`)
-
-## E) How Future Teammates Can Extend This
-
-### Add new questions
-- Edit `getPreparedQuestions()` in `src/data/questions.js` to add `{ id, prompt, expectedAnswer }`.
-
-### Add scoring
-- Create a `createScoreKeeper()` module with private `score`.
-- Controller increments score on correct submit and asks UI to render it.
-
-### Add categories
-- Add `category` to each question.
-- Add `getRandomUnusedQuestion({ category })` or a `setActiveCategory()` method on the question bank.
-
-### Add `localStorage`
-- Add a `createStorage()` module to load/save:
-  - used question ids
-  - best times or answer history
-- Keep storage isolated so the rest of the app doesn't depend on `localStorage` directly.
-
-### Add answer history
-- Create a `createAnswerHistory()` module owned by controller.
-- Push `{ questionId, userAnswer, expectedAnswer, isCorrect, elapsedSeconds }` on submit.
-- UI renders the list from the history module via a small public API.
+- Do not introduce DOM access into `src/core/**`.
+- Do not duplicate `INTERACTION_STATE` / `RESULT_STATUS`.
+- Keep `gameController` as the single owner of app flow; keep `uiRenderer` focused on rendering and control toggling.
+- Prefer adding a new small module over growing `gameController` into a "god file".
 

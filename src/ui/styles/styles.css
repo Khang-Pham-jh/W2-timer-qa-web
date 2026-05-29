@@ -206,24 +206,24 @@ body {
     transform: none;
 }
 
-.button--primary {
+.button-primary {
     background: var(--color-primary);
     color: #ffffff;
     border-color: var(--color-border);
 }
 
-.button--success {
+.button-success {
     background: #ffffff;
     border-color: var(--color-border);
     color: var(--color-text);
 }
 
-.button--neutral {
+.button-neutral {
     background: #ffffff;
     border-color: var(--color-border);
 }
 
-.button--primary:hover:enabled {
+.button-primary:hover:enabled {
     background: #000000;
 }
 
