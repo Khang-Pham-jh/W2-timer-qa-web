@@ -1,16 +1,13 @@
-# Timer Q&A Practice (Vanilla JS)
+# Timer Q&A Practice 
 
 A small practice app: press **Start** to get a random question and start the timer, type an answer, then **Submit** to stop the timer and see whether you're correct. Use **Reset** to return to the idle state.
 
 ## Quick start
 
-Open `problems/W2-D3/index.html` in a browser.
+Open `index.html` in a browser.
 
-Recommended (avoids ES module/CORS issues):
+Recommended:
 - VS Code: use **Live Server** extension
-- Or run a simple local server from `problems/W2-D3/`:
-  - `python -m http.server 5500`
-  - then open `http://localhost:5500/`
 
 ## Expected behavior (user flow)
 
