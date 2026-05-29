@@ -1,4 +1,4 @@
-import { createAnswerValidator } from '../core/validation/answerValidator.js';
+import { isAnswerCorrect, normalizeAnswer } from '../core/validation/answerValidator.js';
 import { createQuestionBank } from '../core/questions/questionBank.js';
 import { createTimer } from '../core/timer/timer.js';
 import { getPreparedQuestions } from '../data/questions.js';
@@ -20,7 +20,7 @@ const init = () => {
     const ui = createUiRenderer(dom);
     const timer = createTimer();
     const questionBank = createQuestionBank(getPreparedQuestions());
-    const validator = createAnswerValidator();
+    const validator = Object.freeze({ normalizeAnswer, isAnswerCorrect });
 
     const controller = createGameController({ timer, questionBank, validator, ui, dom });
     bindEvents({ dom, controller });
@@ -28,4 +28,3 @@ const init = () => {
 };
 
 init();
-
