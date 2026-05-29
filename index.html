@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Timer Q&amp;A Practice</title>
+    <link rel="stylesheet" href="./src/ui/styles/styles.css" />
+</head>
+<body>
+    <main class="page">
+        <section class="answer-section" aria-labelledby="appTitle">
+            <header class="header">
+                <h1 id="appTitle" class="title">Timer Q&amp;A Practice</h1>
+                <p class="subtitle">Press Start, answer the question, then Submit to stop the timer.</p>
+            </header>
+
+            <div class="timer-row">
+                <span class="timer-label">Elapsed</span>
+                <time id="timerDisplay" class="timer-display" role="timer" aria-label="Elapsed time">00:00:00</time>
+            </div>
+
+            <p id="questionText" class="question-text" aria-live="polite">Press Start to begin.</p>
+
+            <form id="answerForm" class="answer-form" novalidate>
+                <label class="answer-label" for="answerInput">Your answer</label>
+                <div class="answer-controls">
+                    <input
+                        id="answerInput"
+                        class="answer-input"
+                        type="text"
+                        inputmode="text"
+                        autocomplete="off"
+                        spellcheck="false"
+                        placeholder="Type your answer..."
+                        disabled
+                    />
+                </div>
+            </form>
+
+            <p id="resultMessage" class="result-message" aria-live="polite"></p>
+
+            <div class="button-group" aria-label="Actions">
+                <button id="startButton" class="button button--primary" type="button">Start</button>
+                <button id="submitButton" class="button button--success" type="submit" form="answerForm" disabled>Submit</button>
+                <button id="resetButton" class="button button--neutral" type="button">Reset</button>
+            </div>
+        </section>
+    </main>
+
+    <script type="module" src="./src/app/index.js"></script>
+</body>
+</html>
+
